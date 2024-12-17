@@ -37,8 +37,29 @@ def interest_rate_risk_test(request):
                     weighted_results = []
                     for row in result:
                         year, gap1, gap2, gap3, gap4 = row
-                        weighted_sum = (gap1 * weights[0] + gap2 * weights[1] + gap3 * weights[2] + gap4 * weights[3]) * scenario
-                        weighted_results.append({'year': year, 'weighted_sum': weighted_sum})
+                        gap1_weighted = gap1 * weights[0] * scenario
+                        gap2_weighted = gap2 * weights[1] * scenario
+                        gap3_weighted = gap3 * weights[2] * scenario
+                        gap4_weighted = gap4 * weights[3] * scenario
+                        total = gap1_weighted + gap2_weighted + gap3_weighted + gap4_weighted
+                        weighted_results.append({
+                            'year': year,
+                            'type': '利率敏感性缺口',
+                            'gap1': round(gap1, 2),
+                            'gap2': round(gap2, 2),
+                            'gap3': round(gap3, 2),
+                            'gap4': round(gap4, 2),
+                            'total': round(gap1 + gap2 + gap3 + gap4, 2)
+                        })
+                        weighted_results.append({
+                            'year': year,
+                            'type': '净利息收入',
+                            'gap1': round(gap1_weighted, 2),
+                            'gap2': round(gap2_weighted, 2),
+                            'gap3': round(gap3_weighted, 2),
+                            'gap4': round(gap4_weighted, 2),
+                            'total': round(total, 2)
+                        })
                     return JsonResponse(weighted_results, safe=False)
             else:
                 return JsonResponse({"message": "测试出现问题"}, status=400)
@@ -71,9 +92,24 @@ def currency_risk_test(request):
                     results = []
                     for row in result:
                         year, usd, hkd, other = row
+                        total = usd + hkd + other
+                        # 添加净外汇敞口行
                         results.append({
                             'year': year,
-                            'weighted_sum': (usd + hkd + other) * scenario
+                            'type': '净外汇敞口',
+                            'USD': round(usd, 2),
+                            'HKD': round(hkd, 2),
+                            'other': round(other, 2),
+                            'total': round(total, 2)
+                        })
+                        # 添加外币损益行
+                        results.append({
+                            'year': year,
+                            'type': '外币损益',
+                            'USD': round(usd * scenario, 2),
+                            'HKD': round(hkd * scenario, 2),
+                            'other': round(other * scenario, 2),
+                            'total': round(total * scenario, 2)
                         })
                     return JsonResponse(results, safe=False)
             else:
@@ -107,9 +143,24 @@ def stock_price_risk_test(request):
                     results = []
                     for row in result:
                         year, invest1, invest2, invest3 = row
+                        total = invest1 + invest2 + invest3
+                        # 添加持有股票资产行
                         results.append({
                             'year': year,
-                            'weighted_sum': (invest1 + invest2 + invest3) * scenario
+                            'type': '持有股票资产',
+                            'invest1': round(invest1, 2),
+                            'invest2': round(invest2, 2),
+                            'invest3': round(invest3, 2),
+                            'total': round(total, 2)
+                        })
+                        # 添加经济资本行（结果乘以-1，经济资本是为了覆盖可能的损失而预留的资金，只考虑不利变动（下跌）情况，经济资本为正）
+                        results.append({
+                            'year': year,
+                            'type': '经济资本',
+                            'invest1': round(invest1 * scenario * -1, 2),
+                            'invest2': round(invest2 * scenario * -1, 2),
+                            'invest3': round(invest3 * scenario * -1, 2),
+                            'total': round(total * scenario * -1, 2)
                         })
                     return JsonResponse(results, safe=False)
             else:
@@ -165,11 +216,14 @@ def smart_stock_price_risk(request):
     base_value = p * 2.58
     scenario_values = [0.75, 1.0, 1.25]
     scenarios = []
+    
+    # 只生成负数情景（即下跌情景）
     for value in scenario_values:
-        for sign in [1, -1]:
-            adjusted_value = base_value * value * sign
-            label = f"{'上升' if sign > 0 else '下降'}{abs(adjusted_value * 100):.2f}%"
-            scenarios.append({'value': adjusted_value, 'label': label})
-    scenarios.sort(key=lambda x: (x['value'] < 0, abs(x['value'])))
+        adjusted_value = base_value * value * (-1)  # 只使用 -1
+        label = f"下降{abs(adjusted_value * 100):.2f}%"
+        scenarios.append({'value': adjusted_value, 'label': label})
+    
+    # 按照跌幅从小到大排序
+    scenarios.sort(key=lambda x: abs(x['value']))
     return JsonResponse({'scenarios': scenarios})
 

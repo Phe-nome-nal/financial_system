@@ -171,15 +171,89 @@
       </el-tab-pane>
       
     </el-tabs>
-    <div class="chart-container">
-      <div id="chart" style="width: 600px; height: 400px;"></div>
-    </div>
+      <div v-if="activeTab === '利率风险' || activeTab === '智能利率风险'" class="table">
+        <el-table 
+          v-if="interestRateResults.length > 0"
+          :data="interestRateResults" 
+          :header-cell-style="{background: 'rgba(242, 242, 242)'}"
+          :span-method="arraySpanMethod"
+          :row-class-name="tableRowClassName"
+          border
+          :row-style="{height:'28px'}"
+          :cell-style="{padding:'3px'}"
+          header-row-class-name="active_header"
+          header-cell-class-name="active_header"
+          cell-class-name="content_center"
+          style="width: 100%; border: 1px solid #7f7f7f;">
+          <el-table-column prop="year" label="年份"></el-table-column>
+          <el-table-column prop="type" label=""></el-table-column>
+          <el-table-column prop="gap1" label="3个月内"></el-table-column>
+          <el-table-column prop="gap2" label="3个月到1年"></el-table-column>
+          <el-table-column prop="gap3" label="1年到5年"></el-table-column>
+          <el-table-column prop="gap4" label="5年以上"></el-table-column>
+          <el-table-column prop="total" label="总计"></el-table-column>
+        </el-table>
+        <div v-if="interestRateResults.length > 0" class="tip-text">
+          <i class="header-icon el-icon-info"></i>净利息收入波动越大，表示承受的利率风险越大
+        </div>
+      </div>
+
+      <div v-if="activeTab === '汇率风险' || activeTab === '智能汇率风险'" class="table">
+        <el-table 
+          v-if="currencyResults.length > 0"
+          :data="currencyResults" 
+          :header-cell-style="{background: 'rgba(242, 242, 242)'}"
+          :span-method="arraySpanMethod"
+          :row-class-name="tableRowClassName"
+          border
+          :row-style="{height:'28px'}"
+          :cell-style="{padding:'3px'}"
+          header-row-class-name="active_header"
+          header-cell-class-name="active_header"
+          cell-class-name="content_center"
+          style="width: 100%; border: 1px solid #7f7f7f;">
+          <el-table-column prop="year" label="年份"></el-table-column>
+          <el-table-column prop="type" label=""></el-table-column>
+          <el-table-column prop="USD" label="美元"></el-table-column>
+          <el-table-column prop="HKD" label="港币"></el-table-column>
+          <el-table-column prop="other" label="其他币种"></el-table-column>
+          <el-table-column prop="total" label="总计"></el-table-column>
+        </el-table>
+        <div v-if="currencyResults.length > 0" class="tip-text">
+    <i class="header-icon el-icon-info"></i>外币损益波动越大，表示承受的汇率风险越大
+  </div>
+      </div>
+
+      <div v-if="activeTab === '股票价格风险' || activeTab === '智能股票价格风险'" class="table">
+        <el-table 
+          v-if="stockPriceResults.length > 0"
+          :data="stockPriceResults" 
+          :header-cell-style="{background: 'rgba(242, 242, 242)'}"
+          :span-method="arraySpanMethod"
+          :row-class-name="tableRowClassName"
+          border
+          :row-style="{height:'28px'}"
+          :cell-style="{padding:'3px'}"
+          header-row-class-name="active_header"
+          header-cell-class-name="active_header"
+          cell-class-name="content_center"
+          style="width: 100%; border: 1px solid #7f7f7f;">
+          <el-table-column prop="year" label="年份"></el-table-column>
+          <el-table-column prop="type" label=""></el-table-column>
+          <el-table-column prop="invest1" label="长期股权投资"></el-table-column>
+          <el-table-column prop="invest2" label="金融投资：交易性金融资产"></el-table-column>
+          <el-table-column prop="invest3" label="金融投资：其他权益工具投资"></el-table-column>
+          <el-table-column prop="total" label="总计"></el-table-column>
+        </el-table>
+        <div v-if="stockPriceResults.length > 0" class="tip-text">
+          <i class="header-icon el-icon-info"></i>经济资本越大，表示承受的股票价格风险越大
+        </div>
+      </div>
   </div>
 </template>
 
 <script>
 import http from '@/utils/request'; // 引入封装的http实例
-import * as echarts from 'echarts';
 
 export default {
   name: 'StressTesting',
@@ -209,16 +283,20 @@ export default {
         label: `${item.value > 0 ? '外币升值' : '外币贬值'}${(Math.abs(item.value) * 100) % 1 === 0 ? Math.abs(item.value) * 100 : (Math.abs(item.value) * 100).toFixed(2)}%`,
         value: item.value
       })),
+      // 股票价格风险压力情景，经济资本是为了覆盖可能的损失而预留的资金，只考虑不利变动（下跌）情况
       options_scenario3: [
-        {value: 0.10},
-        {value: 0.20},
         {value: -0.10},
         {value: -0.20},
+        {value: -0.30},
       ].map(item => ({
         label: `${item.value > 0 ? '上升' : '下降'}${(Math.abs(item.value) * 100) % 1 === 0 ? Math.abs(item.value) * 100 : (Math.abs(item.value) * 100).toFixed(2)}%`,
         value: item.value
       })),
       options_scenario4: [],
+      interestRateResults: [], // 利率风险结果
+      currencyResults: [], // 汇率风险结果
+      stockPriceResults: [], // 股票价格风险结果
+      activeTab: '利率风险', // 当前激活的标签页
     };
   },
   methods: {
@@ -233,7 +311,6 @@ export default {
           if (error.response && error.response.status === 404) {
             this.$message.error('公司名称不存在');
             this.companyValid = false; // 设置标志
-            this.clearChart(); // 清空图表
           }
         });
     },
@@ -248,7 +325,6 @@ export default {
           if (error.response && error.response.status === 404) {
             this.$message.error('公司名称不存在');
             this.companyValid = false; // 设置标志
-            this.clearChart(); // 清空图表
           }
         });
     },
@@ -263,7 +339,6 @@ export default {
           if (error.response && error.response.status === 404) {
             this.$message.error('公司名称不存在');
             this.companyValid = false; // 设置标志
-            this.clearChart(); // 清空图表
           }
         });
     },
@@ -278,8 +353,7 @@ export default {
       }
       http.post('/interest_rate_risk/test', this.formInline)
         .then(response => {
-          this.weightedResults = response.data;
-          this.renderChart1();
+          this.interestRateResults = response.data;
         })
         .catch(error => {
           console.error("利率风险测试失败", error);
@@ -295,8 +369,7 @@ export default {
       }
       http.post('/currency_risk/test', this.formInline)
         .then(response => {
-          this.weightedResults = response.data;
-          this.renderChart2();
+          this.currencyResults = response.data;
         })
         .catch(error => {
           console.error("汇率风险测试失败", error);
@@ -312,113 +385,21 @@ export default {
       }
       http.post('/stock_price_risk/test', this.formInline)
         .then(response => {
-          this.weightedResults = response.data;
-          this.renderChart3();
+          this.stockPriceResults = response.data;
         })
         .catch(error => {
           console.error("股票价格风险测试失败", error);
         });
     },
-    renderChart1() {
-      // 按年份排序
-      this.weightedResults.sort((a, b) => a.year - b.year);
-
-      const chartDom = document.getElementById('chart');
-      const myChart = echarts.init(chartDom);
-      const option = {
-        title: {
-          text: `${this.formInline.company}压力测试结果`,
-          left: 'center'
-        },
-        tooltip: {},
-        legend: {
-          data: ['净利息收入变动'],
-          top: '10%'
-        },
-        xAxis: {
-          type: 'category',
-          data: this.weightedResults.map(item => item.year)
-        },
-        yAxis: {
-          type: 'value'
-        },
-        series: [{
-          name: '净利息收入变动',
-          type: 'line',
-          data: this.weightedResults.map(item => item.weighted_sum)
-        }]
-      };
-      myChart.setOption(option);
-    },
-    renderChart2() {
-      // 按年份排序
-      this.weightedResults.sort((a, b) => a.year - b.year);
-
-      const chartDom = document.getElementById('chart');
-      const myChart = echarts.init(chartDom);
-      const option = {
-        title: {
-          text: `${this.formInline.company}压力测试结果`,
-          left: 'center'
-        },
-        tooltip: {},
-        legend: {
-          data: ['外币损益'],
-          top: '10%'
-        },
-        xAxis: {
-          type: 'category',
-          data: this.weightedResults.map(item => item.year)
-        },
-        yAxis: {
-          type: 'value'
-        },
-        series: [{
-          name: '外币损益',
-          type: 'line',
-          data: this.weightedResults.map(item => item.weighted_sum)
-        }]
-      };
-      myChart.setOption(option);
-    },
-    renderChart3() {
-      // 按年份排序
-      this.weightedResults.sort((a, b) => a.year - b.year);
-
-      const chartDom = document.getElementById('chart');
-      const myChart = echarts.init(chartDom);
-      const option = {
-        title: {
-          text: `${this.formInline.company}压力测试结果`,
-          left: 'center'
-        },
-        tooltip: {},
-        legend: {
-          data: ['经济资本'],
-          top: '10%'
-        },
-        xAxis: {
-          type: 'category',
-          data: this.weightedResults.map(item => item.year)
-        },
-        yAxis: {
-          type: 'value'
-        },
-        series: [{
-          name: '经济资本',
-          type: 'line',
-          data: this.weightedResults.map(item => item.weighted_sum)
-        }]
-      }; 
-      myChart.setOption(option);
-    },
     handleTabClick(tab) {
+      this.activeTab = tab.label;
       // 重置表单数据
       this.formInline.company = '';
       this.formInline.scenario = '';
-      const chartDom = document.getElementById('chart');
-      const myChart = echarts.init(chartDom);
-      myChart.clear(); // 清空图表
+      // 清空所有结果
+      this.interestRateResults = [];
+      this.currencyResults = [];
+      this.stockPriceResults = [];
       if (tab.label === '智能利率风险') {
         this.calculateScenario1();
       }else if (tab.label === '智能汇率风险') {
@@ -454,10 +435,26 @@ export default {
           console.error("智能股票价格风险压力测试失败", error);
         });
     },
-    clearChart() {
-      const chartDom = document.getElementById('chart');
-      const myChart = echarts.init(chartDom);
-      myChart.clear(); // 清空图表
+    arraySpanMethod({ rowIndex, columnIndex }) {
+      if (columnIndex === 0) {  // 年份列
+        if (rowIndex % 2 === 0) {
+          return {
+            rowspan: 2,
+            colspan: 1
+          };
+        } else {
+          return {
+            rowspan: 0,
+            colspan: 0
+          };
+        }
+      }
+    },
+    tableRowClassName({ rowIndex }) {
+      if (rowIndex % 2 === 1) {
+        return 'success-row';
+      }
+      return '';
     }
   }
 };
@@ -483,11 +480,52 @@ export default {
     // padding: 30px;
 
 }
-.chart-container {
-  display: flex;
-  justify-content: center; /* 水平居中 */
-  align-items: center; /* 垂直居中 */
-  margin-top: 20px;
+
+.table {
+  margin-top: 10px;
+  font-size: 12px;
+
+  // 调整表头间隔、设置表头下方边框颜色
+  /deep/ .el-table td.el-table__cell, .el-table th.el-table__cell.is-leaf {
+    border-bottom: 1px solid #333333 !important;
+    padding: 1px 0; 
+    min-width: 0;
+  }
+  
+  // 去除表格cell间隔
+  .el-table .el-table__cell {
+    padding: 0px 0; 
+    min-width: 0;
+    border-color: #333333;
+  }
+  
+  /deep/ .active_header {  //表头
+    color: #333333;
+    font-size: 13px;
+    text-align: center !important;
+    border-color: #333333;
+  }
+  
+  /deep/ .content_center {  //表的内容
+    text-align: center !important;
+    font-size: 13px;
+    border-color: #333333;
+  }
+  /deep/ .el-table .success-row {
+    background-color: #ECF5FF;  // 你可以改成你想要的颜色
+    color: #333;
+  }
+}
+.tip-text {
+  font-size: 13px;  /* 调整字体大小 */
+  color: #333333;   /* 调深颜色使文字更清晰 */
+  margin-top: 8px;  /* 适当增加上边距 */
+  padding-left: 5px;
+}
+
+.header-icon {
+  margin-right: 5px;
+  font-size: 14px;  /* 图标也相应调大 */
 }
 </style>
 
