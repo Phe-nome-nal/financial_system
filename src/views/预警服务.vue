@@ -1252,7 +1252,7 @@ export default {
     display:flex;
     justify-content:flex-start
 }
-/deep/ .text{
+  ::v-deep(.text){
       color:rgba(2, 167, 240, 0.729411764705882);
       margin-top:15px;
       padding: 10px;
@@ -1260,7 +1260,7 @@ export default {
       display:flex;
     // justify-content:right;
     }
-/deep/ .text_detail{
+  ::v-deep(.text_detail){
       color:rgba(2, 167, 240, 0.729411764705882);
       cursor: pointer;
     // justify-content:right;
@@ -1281,18 +1281,18 @@ export default {
   margin-top: 15px;
   margin-left: 10px;
   margin-right: 0px;
-/deep/ .el-table {
+  ::v-deep(.el-table) {
   width: 98.5% !important;
 }
 }
   // 右侧空只能这样调整，左侧必须用margin
-  /deep/ .el-table {
+  ::v-deep(.el-table) {
     width: 97.5% !important;
     // margin-right: 10px;
   }
 
   // 调整表头间隔、设置表头下方边框颜色
-  /deep/ .el-table td.el-table__cell, .el-table th.el-table__cell.is-leaf {
+  ::v-deep(.el-table td.el-table__cell, .el-table th.el-table__cell.is-leaf) {
   // border-bottom: 1px solid #333333 !important;
   padding: 1px 1px 1px 1px; 
   min-width: 0;
@@ -1304,7 +1304,7 @@ export default {
     // border-color:#333333;
 
   }
-  /deep/ .active_header{//表头
+  ::v-deep(.active_header) {//表头
     color: #333333;
     font-size: 13px;
     text-align: center !important;
@@ -1312,7 +1312,7 @@ export default {
 
     // height: 1px;
   }
-  /deep/ .content_center{//表的内容
+  ::v-deep(.content_center) {//表的内容
     text-align: center !important;
     font-size: 13px;
     // border-color:#333333;
