@@ -4,8 +4,11 @@
     <el-tabs type="card" @tab-click="handleTabClick">
       <!-- 主体风险 -->
       <el-tab-pane label="主体风险">
-        <el-card style="height:80px; border: 1px solid #7f7f7f;" :body-style="{padding:0}">
+        <el-card style="height:508px; border: 1px solid #7f7f7f;" :body-style="{padding:0}">
           <div class="card_label" style="height: 28px; width: 100%; text-align: center;">主体风险</div>
+          <div class="form">
+            <component :is="compName" :zoom="datazoom" @datazoom="changeComp" ></component>
+          </div>
         </el-card>
       </el-tab-pane>
       <!-- 利率风险 -->
@@ -260,11 +263,17 @@
 
 <script>
 import http from '@/utils/request'; // 引入封装的http实例
+import mainRiskComponent from '@/components/mainRiskComponent';
 
 export default {
   name: 'StressTesting',
+  components:{
+    mainRiskComponent,
+  },
   data() {
     return {
+      datazoom:[],
+      compName:'mainRiskComponent',
       formInline: {
         company: '',
         scenario: ''
@@ -306,6 +315,10 @@ export default {
     };
   },
   methods: {
+    changeComp(mesg){
+      this.datazoom=mesg
+      console.log(mesg)
+    },
     querySearch1(queryString, cb) {
       http.get('/interest_rate_risk/search', { params: { company: queryString } })
         .then(response => {
