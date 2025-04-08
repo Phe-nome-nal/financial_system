@@ -4,8 +4,11 @@ import axios from 'axios'
 //
 const http = axios.create({
     //通用请求
+    baseURL:'/proxy_url/api/',//后端的地址前缀
+    headers: { origin: 'http://61.240.140.173:6060' },
+    // withCredentials:true
     // baseURL:'http://61.240.140.173:8000/',//后端的地址前缀
-    baseURL:'http://127.0.0.1:8000/',//后端的地址前缀
+    // baseURL:'http://127.0.0.1:8000/',//后端的地址前缀
     // withCredentials:truenpm run serve
     // async:true,
     // timeout:'10000',//10s 超时时间
