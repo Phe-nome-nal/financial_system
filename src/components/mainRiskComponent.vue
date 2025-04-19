@@ -359,7 +359,7 @@ props:{
   },
   mounted() {
     this.loading = true;
-    fetch('http://localhost:5000/api/v1/predict')
+    fetch('http://45.128.155.101:5000/api/v1/predict')
     .then(res => res.json())
     .then((data) => {
       this.loading = false;
@@ -664,7 +664,7 @@ props:{
         if (valid) {
           const stressedData = this.formatStressData();
           console.log('表单提交:', stressedData)
-          fetch('http://127.0.0.1:5000/stress_test', {
+          fetch('http://45.128.155.101:5000/stress_test', {
             method: 'post',
             headers: {
                 'Content-Type': 'application/json',
