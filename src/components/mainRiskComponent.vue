@@ -1,6 +1,15 @@
 <template>
 <div style="width: 100%;">
   <div class="wrapper">
+    <div class="hidden-title">预警日期</div>
+    <el-date-picker
+      v-model="predictDate"
+      type="date"
+      placeholder="选择日期"
+      format="yyyy-MM-dd"
+      value-format="yyyy-MM-dd"
+    >
+    </el-date-picker>
     <div class="hidden-title">压力场景</div>
     <el-form ref="form" :model="form" label-width="80px">
       <el-collapse v-model="activePanels">
@@ -277,6 +286,33 @@
             </el-col>
           </el-row>
         </el-collapse-item>
+        <el-collapse-item name="6">
+          <template slot="title">
+            <span class="prefix"></span>债券市场维度
+          </template>
+          <el-row type="flex" class="row">
+            <el-col :span="9">
+              <el-form-item label="综合指数同比" prop="bond-index-yoy" label-width="96px">
+                <el-slider
+                  v-model="form['bond-index-yoy']"
+                  :min="-1.0"
+                  :max="1.0"
+                  :step="0.1"
+                ></el-slider>
+              </el-form-item>
+            </el-col>
+            <el-col :span="10">
+              <el-form-item label="长短期国债收益" prop="bond-5y-3m" label-width="110px">
+                <el-slider
+                  v-model="form['bond-5y-3m']"
+                  :min="-1.0"
+                  :max="1.0"
+                  :step="0.1"
+                ></el-slider>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-collapse-item>
       </el-collapse>
       <div class="form-actions">
         <el-button type="primary" size="small" @click="submitForm">确定</el-button>
@@ -338,6 +374,7 @@ export default {
         base_stress_index: 0.2
       },
       myChart: null,
+      predictDate: '2025-02-04'
     }
   },
 props:{
@@ -359,7 +396,7 @@ props:{
   },
   mounted() {
     this.loading = true;
-    fetch('http://45.128.155.101:5000/api/v1/predict')
+    fetch(`http://127.0.0.1:5000/api/v1/predict?predict=${this.predictDate}`)
     .then(res => res.json())
     .then((data) => {
       this.loading = false;
@@ -438,7 +475,7 @@ props:{
         //以下是时间轴
         dataZoom: [{
           //也应该是动态的
-          startValue: '2022-07-01'
+          startValue: '2024-10-01'
         }, {
           type: 'inside'
         }],
@@ -544,12 +581,8 @@ props:{
               // position: 'end',
               formatter: '预测值'
             },
-            data:[[{
-              xAxis:this.markArea[0]},
-              {
-                xAxis:this.markArea[1]
-                // x:'100%'
-              },
+            data:[[{xAxis:this.markArea[0]},
+              {xAxis:this.markArea[1]},
             ]]
 
           }
@@ -664,7 +697,8 @@ props:{
         if (valid) {
           const stressedData = this.formatStressData();
           console.log('表单提交:', stressedData)
-          fetch('http://45.128.155.101:5000/stress_test', {
+          this.loading = true;
+          fetch(`http://127.0.0.1:5000/api/v1/stress_test?predict=${this.predictDate}`, {
             method: 'post',
             headers: {
                 'Content-Type': 'application/json',
@@ -672,19 +706,32 @@ props:{
             body: JSON.stringify({ ...stressedData }),
           })
           .then(res => res.json())
-          .then(res => {
+          .then(data => {
             this.$message.success('提交成功')
-            const opt = this.myChart.getOption();
-            const dates = opt.xAxis[0].data;
-            this.myChart.setOption({
-              xAxis: {
-                axisLabel:{
-                  fontSize:5
-                },
-                data: [...dates, ...this.markArea]
-              },
-              series: this.updateSeries(res)
-            })
+            this.loading = false;
+            this.riskData=data.wholerisk
+            this.markPoint=data.markpoint
+            this.markLine=data.markline
+            this.markArea=data.markarea
+            this.prevDayRisk=data.detail[0]
+            this.yesterdayRisk=data.detail[1]
+            this.todayRisk=data.detail[2]
+            this.tomorrowRisk=data.detail[3]
+            this.warningRisk=data.detail[4]
+            this.future=data.future
+            // console.log(this.riskData,this.markLine,this.markPoint[0])
+            this.initChart()
+            // const opt = this.myChart.getOption();
+            // const dates = opt.xAxis[0].data;
+            // this.myChart.setOption({
+            //   xAxis: {
+            //     axisLabel:{
+            //       fontSize:5
+            //     },
+            //     data: [...dates, ...this.markArea]
+            //   },
+            //   series: this.updateSeries(res)
+            // })
           })
           .catch(e => console.error(e))
 
@@ -697,6 +744,7 @@ props:{
       this.form = {};
     },
     updateSeries(res) {
+      console.log(res);
       const opt = this.myChart.getOption()
       const fsiSeries = opt.series[0]
       const predicted_stress_index = res.change <= 0 ? res.base_stress_index - res.change : res.predicted_stress_index;
@@ -738,6 +786,9 @@ props:{
         this.form['macro-gdp'] = -0.12
         this.form['macro-cpi'] = +0.12
         this.form['macro-ppi'] = +0.15
+
+        this.form['bond-index-yoy'] = +0.15
+        this.form['bond-5y-3m'] = -0.1
       } else if (sceneType === 'greatDepression') { // 经济大萧条
         this.form['finance-deposit-loan'] = +0.15
         this.form['finance-m2-gdp'] = -0.10
@@ -761,6 +812,9 @@ props:{
         this.form['macro-gdp'] = -0.20
         this.form['macro-cpi'] = -0.10
         this.form['macro-ppi'] = -0.15
+
+        this.form['bond-index-yoy'] = +0.30
+        this.form['bond-5y-3m'] = -0.20
       } else if (sceneType === 'globalPandemic') { // 全球性疫情
         this.form['finance-deposit-loan'] = +0.10
         this.form['finance-m2-gdp'] = -0.05
@@ -784,6 +838,9 @@ props:{
         this.form['macro-gdp'] = -0.50
         this.form['macro-cpi'] = -0.02
         this.form['macro-ppi'] = -0.05
+
+        this.form['bond-index-yoy'] = +0.10
+        this.form['bond-5y-3m'] = +0.05
       } else if (sceneType === 'localWars') { // 局部战争
         this.form['finance-deposit-loan'] = +0.10
         this.form['finance-m2-gdp'] = +0.08
@@ -807,6 +864,9 @@ props:{
         this.form['macro-gdp'] = -0.05
         this.form['macro-cpi'] = +0.15
         this.form['macro-ppi'] = +0.20
+
+        this.form['bond-index-yoy'] = +0.10
+        this.form['bond-5y-3m'] = +0.10
       } else if (sceneType === 'housingBubbleBurst') { // 房地产泡沫破灭
         this.form['finance-deposit-loan'] = +0.10
         this.form['finance-m2-gdp'] = -0.05
@@ -830,6 +890,9 @@ props:{
         this.form['macro-gdp'] = -0.15
         this.form['macro-cpi'] = -0.05
         this.form['macro-ppi'] = -0.10
+
+        this.form['bond-index-yoy'] = +0.25
+        this.form['bond-5y-3m'] = +0.05
       }
     },
     formatStressData() {
@@ -853,6 +916,15 @@ props:{
           "fx-total-import-export",
           "fx-export-yoy",
           "fx-import-yoy",
+        ],
+        "macro": [
+          "macro-gdp",
+          "macro-cpi",
+          "macro-ppi",
+        ],
+        "bond": [
+          "bond-index-yoy",
+          "bond-5y-3m",
         ]
       }
 

@@ -3,9 +3,9 @@
     <!-- 卡片化的标签页 -->
     <el-tabs type="card" @tab-click="handleTabClick">
       <!-- 主体风险 -->
-      <el-tab-pane label="主体风险">
+      <el-tab-pane label="资本市场风险">
         <el-card style="height:max-content; border: 1px solid #7f7f7f;" :body-style="{padding:0}">
-          <div class="card_label" style="height: 28px; width: 100%; text-align: center;">主体风险</div>
+          <div class="card_label" style="height: 28px; width: 100%; text-align: center;">资本市场风险</div>
           <div class="form no-margin">
             <component :is="compName" :zoom="datazoom" @datazoom="changeComp" ></component>
           </div>
