@@ -602,7 +602,7 @@ props:{
         ,
         xAxis:
           {
-            data:[{value:'未来一个月'}],
+            data:[{value:'预测区间统计'}],
             axisLabel:{
               fontSize:5
             }
@@ -625,7 +625,7 @@ props:{
           data:[{value: this.future,} ],
           // 确保箱型图显示在折线图之后
           // zlevel: 3,
-          // 箱型图的x轴数据应对应未来一个月的日期，由于这些日期没有具体值，我们使用null，ECharts会自动处
+          // 箱型图的x轴数据应对应预测区间统计的日期，由于这些日期没有具体值，我们使用null，ECharts会自动处
           // ... 箱型图其他配置，如颜色、样式等
           markArea:{
             label: { // 分界线上的文字标签
